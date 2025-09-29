@@ -1,758 +1,593 @@
-<!DOCTYPE html>
-<html lang="zh-TW"><head>
+﻿<!DOCTYPE html>
+<html lang="zh-Hant"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>單字打字練習</title>
+    <title>普普風單字學習機</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&amp;display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Comic Sans MS', cursive, sans-serif;
-            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
-            color: #333;
-            text-align: center;
-            margin: 0;
-            padding: 0;
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #fef3c7;
+            background-image: radial-gradient(#fbbf24 15%, transparent 16%),
+                              radial-gradient(#fbbf24 15%, transparent 16%);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
         }
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
-            color: #fff;
-            padding: 10px 0;
-            z-index: 1000;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.5);
+        .pop-shadow { box-shadow: 8px 8px 0px #000; transition: all 0.2s ease-in-out; }
+        .pop-shadow-sm { box-shadow: 4px 4px 0px #000; transition: all 0.2s ease-in-out; }
+        .btn-press:active { transform: translate(4px, 4px); box-shadow: 0px 0px 0px #000; }
+        textarea::-webkit-scrollbar { width: 12px; }
+        textarea::-webkit-scrollbar-track { background: #fde68a; border-radius: 10px; }
+        textarea::-webkit-scrollbar-thumb { background-color: #f59e0b; border-radius: 10px; border: 3px solid #fde68a; }
+        .letter-btn {
+            min-width: 3.5rem; /* 確保字母按鈕夠大，方便點擊 */
         }
-        .header h1 {
-            margin: 0;
-            padding-left: 20px;
-            font-size: 30px;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px #000;
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-1px, 0, 0); }
+          20%, 80% { transform: translate3d(2px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+          40%, 60% { transform: translate3d(4px, 0, 0); }
         }
-        .keyboard-status {
-            padding-right: 20px;
-            font-size: 18px;
-            color: #fff;
+        .animate-shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
-        .setup-area, .practice-area {
-            margin: 80px auto 20px auto;
-            width: 90%;
-            max-width: 800px;
-            background-color: #fff;
-            border-radius: 15px;
-            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
-            padding: 20px; 
-            display: none;
+        @keyframes blink {
+            from, to { border-color: transparent; }
+            50% { border-color: #334155; } /* slate-700 */
         }
-        .setup-area.active, .practice-area.active {
-            display: block;
+        #spelling-cursor {
+            display: inline-block;
+            width: 0;
+            height: 2.5rem; /* Match text-4xl line-height */
+            border-right: 3px solid #334155; /* slate-700 */
+            animation: blink 1s step-end infinite;
+            vertical-align: bottom;
+            margin-left: 2px;
         }
-        .letter-display {
-            font-size: 64px;
-            font-weight: bold;
-            color: #ff6f61;
-            margin-bottom: 10px; 
-            text-shadow: 3px 3px 6px #fbb1bd;
+        .spelling-space {
+            display: inline-block;
+            width: 1ch;
+            border-bottom: 3px solid #94a3b8; /* slate-400 */
+            margin-bottom: 5px; /* Adjust alignment */
         }
-        input[type="text"] {
-            width: 95%;
-            padding: 15px; 
-            font-size: 32px;
-            text-align: center;
-            border-radius: 10px;
-            border: 2px solid #ddd;
-            outline: none;
-            transition: border-color 0.3s, box-shadow 0.3s;
-            margin-bottom: 10px;
+        @keyframes pulse {
+          0%, 100% {
+            transform: scale(1);
+            box-shadow: 8px 8px 0px #000;
+          }
+          50% {
+            transform: scale(1.05);
+            box-shadow: 10px 10px 0px #000;
+          }
         }
-        input[type="text"]:focus {
-            border-color: #ff6f61;
-            box-shadow: 0 0 10px #ff6f61;
-        }
-        .feedback {
-            font-size: 28px;
-            height: 30px;
-        }
-        .correct {
-            color: #28a745;
-            text-shadow: 2px 2px 4px #28a745;
-        }
-        .incorrect {
-            color: #dc3545;
-            text-shadow: 2px 2px 4px #dc3545;
-        }
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .timer, .score, .feedback {
-            flex: 1;
-        }
-        .timer {
-            font-size: 24px;
-            color: #666;
-            text-align: right;
-        }
-        .score {
-            font-size: 28px;
-            color: #ff6f61;
-            text-shadow: 2px 2px 4px #fbb1bd;
-            text-align: left;
-        }
-        .virtual-keyboard {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
-        }
-        .keyboard-row {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 5px;
-        }
-        .key {
-            width: 60px;
-            height: 60px;
-            margin: 3px;
-            border-radius: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            font-weight: bold;
-            color: #fff;
-            border: 2px solid #ccc;
-            transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
-            position: relative;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        .highlighted {
-            border-color: #000;
-            box-shadow: 0 0 15px #000;
-        }
-        .finger-pinkie-left { background-color: #FFB6C1; }
-        .finger-ring-left { background-color: #FFA07A; }
-        .finger-middle-left { background-color: #F0E68C; }
-        .finger-index-left { background-color: #90EE90; }
-        .finger-index-right { background-color: #ADD8E6; }
-        .finger-middle-right { background-color: #DDA0DD; }
-        .finger-ring-right { background-color: #FF6347; }
-        .finger-pinkie-right { background-color: #D3D3D3; }
-
-        .legend {
-            margin-top: 20px;
-            text-align: center;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            font-size: 18px;
-            color: #333;
-        }
-        .legend-row {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 10px;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin: 0 15px;
-        }
-        .legend-color {
-            width: 24px;
-            height: 24px;
-            border-radius: 5px;
-            margin-right: 10px;
-            border: 1px solid #ccc;
-        }
-        .control-buttons {
-            margin: 10px 0;
-        }
-        .control-buttons button {
-            padding: 12px 24px;
-            font-size: 20px;
-            margin: 5px;
-            border: none;
-            border-radius: 10px;
-            background-color: #007BFF;
-            color: #fff;
-            cursor: pointer;
-            transition: border 0.3s, background-color 0.3s, box-shadow 0.3s;
-        }
-        .control-buttons button.selected {
-            border: 3px solid #ff6f61;
-        }
-        .control-buttons button:hover {
-            background-color: #0056b3;
-            box-shadow: 0 0 10px #0056b3;
-        }
-        .start-button {
-            padding: 15px 30px;
-            font-size: 24px;
-            border-radius: 10px;
-            background-color: #ff6f61;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s, box-shadow 0.3s;
-            margin-top: 20px;
-        }
-        .start-button:hover {
-            background-color: #e65b50;
-            box-shadow: 0 0 15px #e65b50;
-        }
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            display: none;
-        }
-        .overlay-content {
-            background-color: white;
-            padding: 40px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-        }
-        .overlay-content h2 {
-            font-size: 40px;
-            margin-bottom: 20px;
-            color: #ff6f61;
-            text-shadow: 2px 2px 4px #fbb1bd;
-        }
-        .overlay-content p {
-            font-size: 54px;
-            color: #dc3545;
-            font-weight: bold;
-            margin-bottom: 30px;
-            text-shadow: 2px 2px 4px #fbb1bd;
-        }
-        .overlay-content button {
-            padding: 12px 24px;
-            font-size: 26px;
-            border-radius: 10px;
-            background-color: #007BFF;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s, box-shadow 0.3s;
-        }
-        .overlay-content button:hover {
-            background-color: #0056b3;
-            box-shadow: 0 0 10px #0056b3;
-        }
-        .footer {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            font-size: 16px;
-            color: #333;
-        }
-        .footer a {
-            color: #007BFF;
-            text-decoration: none;
-        }
-        .footer a:hover {
-            text-decoration: underline;
-        }
-
-        /* 新增的透明區域樣式 */
-        .switch-area {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            width: 50px;
-            height: 50px;
-            background-color: rgba(0, 0, 0, 0); /* 透明 */
-            cursor: pointer;
-        }
-
-        /* 自訂單字練習畫面的樣式 */
-        .custom-word-area {
-            display: none;
-            margin: 100px auto;
-            width: 90%;
-            max-width: 800px;
-            background-color: #fff;
-            border-radius: 15px;
-            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
-            padding: 20px;
-            text-align: center;
-        }
-        .custom-word-area h2 {
-            font-size: 24px;
-            color: #ff6f61;
-        }
-        .custom-word-area textarea {
-            width: 95%;
-            height: 150px;
-            padding: 15px;
-            font-size: 16px;
-            margin: 20px 0;
-            border-radius: 10px;
-            border: 2px solid #ddd;
-            text-align: left;
-            resize: none;
-        }
-        .custom-word-area button {
-            padding: 10px 20px;
-            font-size: 20px;
-            border-radius: 10px;
-            background-color: #007BFF;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-        }
-        .custom-word-table-container {
-            margin-top: 20px;
-        }
-        .custom-word-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .custom-word-table {
-            width: 100%;
-            max-height: 300px;
-            overflow-y: scroll;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-        .custom-word-table th, .custom-word-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        .custom-word-table th {
-            background-color: #f2f2f2;
-            font-weight: bold;
+        .recording {
+          animation: pulse 1.5s infinite;
         }
     </style>
 </head>
-<body>
-    <div class="header">
-        <h1>英打練習</h1>
-        <div class="keyboard-status" id="keyboardStatus">目前輸入法：英文小寫</div>
-    </div>
+<body class="p-4">
 
-    <!-- 設定區域 -->
-    <div class="setup-area active" id="setupArea">
-        <h2>英打單字列表</h2>
-        <div class="control-buttons order" id="questionButtons">
-            <!-- 這裡將動態生成按鈕 -->
+    <div class="w-full max-w-2xl mx-auto">
+        <!-- 主畫面區 -->
+        <div id="main-section">
+            <div class="bg-sky-400 border-4 border-black rounded-xl p-6 md:p-8 pop-shadow">
+                <h1 class="text-3xl md:text-4xl font-black text-white text-center drop-shadow-[2px_2px_0px_#000]">普普風單字學習機</h1>
+                <p class="hidden text-center text-white mt-2 font-bold drop-shadow-[1px_1px_0px_#000]">請在下方貼上您的單字列表</p>
+                <!-- 題目內容請在此處修改 -->
+                <textarea id="word-input" class="hidden w-full h-48 mt-4 p-4 border-4 border-black rounded-lg text-lg pop-shadow-sm focus:outline-none focus:ring-4 focus:ring-amber-400" placeholder="一行一個單字，英文和中文用 Tab 分開。">Apple	蘋果
+Pineapple	鳳梨
+Grape	葡萄
+Banana	香蕉
+Mango	芒果
+Orange	橙子／柳橙
+Strawberry	草莓</textarea>
+            </div>
+             <!-- 模式選擇區 -->
+            <div id="mode-selection-section" class="mt-6 bg-orange-500 border-4 border-black rounded-xl p-6 md:p-8 pop-shadow text-center">
+                <h2 class="text-3xl font-black text-white drop-shadow-[2px_2px_0px_#000]">選擇練習模式</h2>
+                <div class="mt-6 space-y-4">
+                    <button data-mode="flashcard" class="mode-btn w-full bg-sky-400 text-white font-black text-xl py-4 rounded-lg border-4 border-black pop-shadow-sm btn-press hover:bg-sky-500">看中文猜英文 (單字卡)</button>
+                    <button data-mode="spelling" class="mode-btn w-full bg-pink-500 text-white font-black text-xl py-4 rounded-lg border-4 border-black pop-shadow-sm btn-press hover:bg-pink-600">看中文拼單字</button>
+                    <button data-mode="jumble" class="mode-btn w-full bg-lime-500 text-white font-black text-xl py-4 rounded-lg border-4 border-black pop-shadow-sm btn-press hover:bg-lime-600">字母重組</button>
+                    <button data-mode="speech" class="mode-btn w-full bg-teal-500 text-white font-black text-xl py-4 rounded-lg border-4 border-black pop-shadow-sm btn-press hover:bg-teal-600">語音辨識練習</button>
+                </div>
+            </div>
         </div>
-        <div class="control-buttons time">
-            <h3>選擇練習時間：</h3>
-            <button onclick="setPracticeTime(1, this)">1 分鐘</button>
-            <button onclick="setPracticeTime(3, this)" class="selected">3 分鐘</button>
-            <button onclick="setPracticeTime(5, this)">5 分鐘</button>
-        </div>
-        <button class="start-button" onclick="startPractice()">開始練習</button>
-    </div>
 
-    <!-- 練習區域 -->
-    <div class="practice-area" id="practiceArea">
-        <div class="status-bar">
-            <div class="score" id="score">分數: 0</div>
-            <div class="feedback" id="feedback"></div>
-            <div class="timer" id="timer">Time: 0s</div>
-        </div>
-        <div class="letter-display" id="letterDisplay"></div>
-        <input type="text" id="inputBox" autofocus="">
-        <div class="virtual-keyboard" id="virtualKeyboard">
-            <div class="keyboard-row">
-                <div class="key finger-pinkie-left" id="keyQ">q</div>
-                <div class="key finger-ring-left" id="keyW">w</div>
-                <div class="key finger-middle-left" id="keyE">e</div>
-                <div class="key finger-index-left" id="keyR">r</div>
-                <div class="key finger-index-left" id="keyT">t</div>
-                <div class="key finger-index-right" id="keyY">y</div>
-                <div class="key finger-index-right" id="keyU">u</div>
-                <div class="key finger-middle-right" id="keyI">i</div>
-                <div class="key finger-ring-right" id="keyO">o</div>
-                <div class="key finger-pinkie-right" id="keyP">p</div>
+        <!-- 練習區塊 -->
+        <div id="practice-section" class="hidden">
+            <div id="progress-indicator" class="text-center text-xl font-bold mb-2 drop-shadow-[2px_2px_0px_#fff]"></div>
+            
+            <div class="relative bg-amber-300 border-4 border-black rounded-xl p-6 min-h-[450px] flex flex-col items-center justify-between pop-shadow">
+                <div id="feedback-indicator" class="absolute top-4 right-4 text-2xl font-black"></div>
+                <div class="w-full">
+                    <div class="text-5xl md:text-6xl font-black text-center text-slate-800 break-all flex justify-center items-center gap-x-4 flex-wrap">
+                        <span id="chinese-word"></span>
+                        <button id="speak-emoji-btn" class="text-4xl md:text-5xl hover:scale-110 transition-transform active:scale-95">🔊</button>
+                    </div>
+                    <div id="english-word-container" class="hidden text-center mt-4">
+                        <h2 id="english-word" class="text-6xl md:text-7xl font-black text-fuchsia-600 drop-shadow-[3px_3px_0px_#fff]"></h2>
+                    </div>
+                </div>
+
+                <!-- 練習互動區 -->
+                <div id="interaction-area" class="w-full mt-6">
+                    <!-- 拼字模式 -->
+                    <div id="spelling-mode" class="hidden">
+                        <div id="spelling-answer" class="w-full bg-white min-h-[60px] p-2 flex justify-center items-center flex-wrap gap-1 text-4xl font-bold text-slate-800 tracking-widest rounded-lg border-4 border-dashed border-gray-500">
+                            <span id="spelling-input-text"></span><span id="spelling-cursor"></span>
+                        </div>
+                        <div id="alphabet-keyboard" class="w-full mt-4 p-2 flex justify-center items-center flex-wrap gap-2"></div>
+                    </div>
+                    <!-- 字母重組模式 -->
+                    <div id="jumble-mode" class="hidden">
+                        <div id="jumble-answer" class="w-full bg-white min-h-[60px] p-2 flex justify-center items-center flex-wrap gap-2 border-4 border-dashed border-gray-500 rounded-lg"></div>
+                        <div id="jumble-pool" class="w-full mt-4 p-2 flex justify-center items-center flex-wrap gap-2"></div>
+                        <div class="w-full mt-2 flex justify-center items-center flex-wrap gap-2">
+                            <button id="jumble-caps-btn" class="bg-gray-200 text-black font-bold text-xl py-2 px-4 rounded-lg border-4 border-black pop-shadow-sm btn-press">大小寫</button>
+                        </div>
+                    </div>
+                    <!-- 語音辨識模式 -->
+                    <div id="speech-mode" class="hidden text-center">
+                        <button id="record-btn" class="w-40 h-40 mx-auto bg-red-500 text-white rounded-full border-8 border-black flex items-center justify-center pop-shadow btn-press active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg class="w-20 h-20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"></path></svg>
+                        </button>
+                        <p id="recognition-status" class="mt-4 text-xl font-bold text-slate-700 h-8">點擊麥克風開始</p>
+                        <div class="mt-2 min-h-[4rem] text-4xl font-black text-slate-800" id="recognized-text"></div>
+                    </div>
+                </div>
+
+                <button id="check-answer-btn" class="mt-8 bg-green-500 text-white font-bold text-xl py-3 px-8 rounded-lg border-4 border-black pop-shadow-sm btn-press hover:bg-green-600">
+                    檢查答案
+                </button>
             </div>
-            <div class="keyboard-row">
-                <div class="key finger-pinkie-left" id="keyA">a</div>
-                <div class="key finger-ring-left" id="keyS">s</div>
-                <div class="key finger-middle-left" id="keyD">d</div>
-                <div class="key finger-index-left" id="keyF">f</div>
-                <div class="key finger-index-left" id="keyG">g</div>
-                <div class="key finger-index-right" id="keyH">h</div>
-                <div class="key finger-index-right" id="keyJ">j</div>
-                <div class="key finger-middle-right" id="keyK">k</div>
-                <div class="key finger-ring-right" id="keyL">l</div>
-            </div>
-            <div class="keyboard-row">
-                <div class="key finger-pinkie-left" id="keyZ">z</div>
-                <div class="key finger-ring-left" id="keyX">x</div>
-                <div class="key finger-middle-left" id="keyC">c</div>
-                <div class="key finger-index-left" id="keyV">v</div>
-                <div class="key finger-index-right" id="keyB">b</div>
-                <div class="key finger-index-right" id="keyN">n</div>
-                <div class="key finger-middle-right" id="keyM">m</div>
-            </div>
-        </div>
-        <div class="legend">
-            <h3>手指顏色說明：</h3>
-            <div class="legend-row">
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: #FFB6C1;"></div>左手小指
+            
+             <div class="mt-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <button id="prev-button" class="nav-btn bg-cyan-400 text-white font-bold text-xl py-3 rounded-lg border-4 border-black pop-shadow-sm btn-press hover:bg-cyan-500 disabled:opacity-50">&lt; 上一個</button>
+                    <button id="next-button" class="nav-btn bg-cyan-400 text-white font-bold text-xl py-3 rounded-lg border-4 border-black pop-shadow-sm btn-press hover:bg-cyan-500 disabled:opacity-50">下一個 &gt;</button>
                 </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: #FFA07A;"></div>左手無名指
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: #F0E68C;"></div>左手中指
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: #90EE90;"></div>左手食指
-                </div>
-            </div>
-            <div class="legend-row">
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: #ADD8E6;"></div>右手食指
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: #DDA0DD;"></div>右手中指
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: #FF6347;"></div>右手無名指
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: #D3D3D3;"></div>右手小指
-                </div>
+                <button id="back-to-main-button" class="w-full bg-gray-400 text-black font-bold text-xl py-3 rounded-lg border-4 border-black pop-shadow-sm btn-press hover:bg-gray-500">返回主選單</button>
             </div>
         </div>
     </div>
 
-    <div class="overlay" id="scoreOverlay">
-        <div class="overlay-content">
-            <h2 id="practiceTimeText">此次練習時間: 3 分鐘</h2>
-            <p id="finalScore">分數: 0</p>
-            <button onclick="restartPractice()">重新開始</button>
-        </div>
-    </div>
-
-    <div class="footer">
-        Made by <a href="https://kentxchang.blogspot.tw" target="_blank">阿剛老師</a>
-    </div>
-
-    <!-- 新增的透明區域 -->
-    <div class="switch-area" onclick="switchToCustomWordArea()"></div>
-
-    <!-- 自訂單字練習區域 -->
-    <div class="custom-word-area" id="customWordArea">
-        <h2>自訂練習用英文單字</h2>
-        <textarea id="customWordInput">我是標題A
-America	美國
-the UK	英國
-Taiwan	台灣
-Japan	日本
-        </textarea>
-        <button onclick="submitCustomWord()">送出</button>
-        <div class="custom-word-table-container">
-            <div id="customWordTitle" class="custom-word-title"></div>
-            <table class="custom-word-table" id="customWordTable"></table>
-        </div>
-    </div>
+    <!-- Author Tag -->
+    <p class="fixed bottom-4 right-4 bg-white/80 backdrop-blur-sm py-1 px-3 rounded-lg border-2 border-black text-sm font-semibold text-slate-700 pop-shadow-sm z-50">Made by 阿剛老師</p>
 
     <script>
-        let currentWordList = [];
-        let currentWord = "";
-        let currentTranslation = "";
-        let startTime;
-        let interval;
-        let practiceTime = 3;
-        let score = 0;
-        let wordIndex = 0;
-        let timerStarted = false;
+        // DOM Elements
+        const mainSection = document.getElementById('main-section');
+        const practiceSection = document.getElementById('practice-section');
+        const wordInput = document.getElementById('word-input');
+        const modeButtons = document.querySelectorAll('.mode-btn');
+        
+        // Practice Section Elements
+        const progressIndicator = document.getElementById('progress-indicator');
+        const chineseWord = document.getElementById('chinese-word');
+        const englishWordContainer = document.getElementById('english-word-container');
+        const englishWord = document.getElementById('english-word');
+        const checkAnswerBtn = document.getElementById('check-answer-btn');
+        const prevButton = document.getElementById('prev-button');
+        const nextButton = document.getElementById('next-button');
+        const speakEmojiBtn = document.getElementById('speak-emoji-btn');
+        const backToMainBtn = document.getElementById('back-to-main-button');
+        const feedbackIndicator = document.getElementById('feedback-indicator');
 
-        function startPractice() {
-            document.getElementById("setupArea").style.display = "none"; // 隱藏設定區域
-            document.getElementById("practiceArea").style.display = "block"; // 顯示練習區域
-            document.getElementById("practiceArea").classList.add("active");
-            document.getElementById("inputBox").focus(); // 聚焦輸入框
-            score = 0;
-            wordIndex = 0;
-            timerStarted = false; // 重置計時器狀態
-            document.getElementById("score").innerText = `分數: ${score}`;
-            document.getElementById("timer").innerText = `Time: 0s`; // 重置時間顯示
-            shuffleWords(); // 隨機排序單字
-            updateWord(); // 更新當前顯示的單字
-            detectCapsLock();
+        // Mode specific elements
+        const spellingModeDiv = document.getElementById('spelling-mode');
+        const spellingAnswer = document.getElementById('spelling-answer');
+        const spellingInputText = document.getElementById('spelling-input-text');
+        const alphabetKeyboard = document.getElementById('alphabet-keyboard');
+        
+        const jumbleModeDiv = document.getElementById('jumble-mode');
+        const jumbleAnswer = document.getElementById('jumble-answer');
+        const jumblePool = document.getElementById('jumble-pool');
+        const jumbleCapsBtn = document.getElementById('jumble-caps-btn');
+        
+        const speechModeDiv = document.getElementById('speech-mode');
+        const recordBtn = document.getElementById('record-btn');
+        const recognitionStatus = document.getElementById('recognition-status');
+        const recognizedText = document.getElementById('recognized-text');
+
+        // App State
+        let currentWordIndex = 0;
+        let currentMode = '';
+        let words = [];
+        const synth = window.speechSynthesis;
+        let audioCtx;
+        let isCaps = false;
+
+        // Speech Recognition State
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let isRecording = false;
+
+        // --- Audio Context and Sound Effects ---
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
         }
 
-        function setPracticeTime(minutes, button) {
-            practiceTime = minutes;
-            updateSelectedButton(button, 'time');
+        function playSound(type) {
+            if (!audioCtx) return;
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.02);
+            if (type === 'correct') {
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                oscillator.frequency.linearRampToValueAtTime(783.99, audioCtx.currentTime + 0.1);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.2);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.2);
+            } else {
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(164.81, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.3);
+            }
         }
+        
+        // --- Keyboard Generation ---
+        function createAlphabetKeyboard() {
+            alphabetKeyboard.innerHTML = '';
+            const alphabet = 'abcdefghijklmnopqrstuvwxyz';
 
-        function updateSelectedButton(button, group) {
-            const buttons = document.querySelectorAll(`.control-buttons.${group} button`);
-            buttons.forEach(btn => btn.classList.remove('selected'));
-            button.classList.add('selected');
-        }
+            const lettersContainer = document.createElement('div');
+            lettersContainer.className = 'w-full flex justify-center items-center flex-wrap gap-2';
 
-        function startTimer() {
-            startTime = new Date();
-            interval = setInterval(() => {
-                const elapsedTime = Math.floor((new Date - startTime) / 1000);
-                const remainingTime = practiceTime * 60 - elapsedTime;
-                if (remainingTime <= 0) {
-                    stopTimer();
-                    showScoreOverlay();
+            const addChar = (char) => {
+                const charEl = document.createElement('span');
+                if (char === ' ') {
+                    charEl.innerHTML = '&nbsp;';
+                    charEl.className = 'spelling-space';
                 } else {
-                    document.getElementById("timer").innerText = `Time: ${remainingTime}s`;
+                    charEl.textContent = char;
                 }
-            }, 1000);
+                spellingInputText.appendChild(charEl);
+            };
+            
+            const letterButtons = [];
+
+            for (const char of alphabet) {
+                const btn = document.createElement('button');
+                btn.className = 'letter-btn bg-pink-400 text-white font-black text-2xl py-2 px-3 rounded-lg border-4 border-black pop-shadow-sm btn-press';
+                btn.textContent = char; // Initially lowercase
+                btn.dataset.char = char; // Store base char
+                btn.onclick = () => addChar(btn.textContent);
+                lettersContainer.appendChild(btn);
+                letterButtons.push(btn); // Keep a reference
+            }
+            alphabetKeyboard.appendChild(lettersContainer);
+
+            const controlsContainer = document.createElement('div');
+            controlsContainer.className = 'w-full mt-2 flex justify-center items-center flex-wrap gap-2';
+            
+            const capsLockBtn = document.createElement('button');
+            capsLockBtn.className = 'bg-gray-200 text-black font-bold text-xl py-2 px-4 rounded-lg border-4 border-black pop-shadow-sm btn-press';
+            capsLockBtn.textContent = '大小寫';
+            capsLockBtn.onclick = () => {
+                isCaps = !isCaps;
+                capsLockBtn.classList.toggle('bg-yellow-400', isCaps);
+                letterButtons.forEach(btn => {
+                    const baseChar = btn.dataset.char;
+                    btn.textContent = isCaps ? baseChar.toUpperCase() : baseChar.toLowerCase();
+                });
+            };
+
+            const spaceBtn = document.createElement('button');
+            spaceBtn.className = 'bg-gray-200 text-black font-bold text-xl py-2 px-4 rounded-lg border-4 border-black pop-shadow-sm btn-press flex-grow-[5]';
+            spaceBtn.textContent = '空白鍵';
+            spaceBtn.onclick = () => addChar(' ');
+
+            const backspaceBtn = document.createElement('button');
+            backspaceBtn.className = 'bg-yellow-400 text-black font-bold text-xl py-2 px-4 rounded-lg border-4 border-black pop-shadow-sm btn-press';
+            backspaceBtn.innerHTML = '&larr; 刪除';
+            backspaceBtn.onclick = () => {
+                if (spellingInputText.lastChild) {
+                    spellingInputText.removeChild(spellingInputText.lastChild);
+                }
+            };
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'bg-yellow-400 text-black font-bold text-xl py-2 px-4 rounded-lg border-4 border-black pop-shadow-sm btn-press';
+            clearBtn.textContent = '清除';
+            clearBtn.onclick = () => {
+                spellingInputText.innerHTML = '';
+            };
+
+            controlsContainer.appendChild(capsLockBtn);
+            controlsContainer.appendChild(spaceBtn);
+            controlsContainer.appendChild(backspaceBtn);
+            controlsContainer.appendChild(clearBtn);
+
+            alphabetKeyboard.appendChild(controlsContainer);
         }
 
-        function stopTimer() {
-            clearInterval(interval);
+        // --- UI Navigation ---
+        function showSection(sectionName) {
+            mainSection.classList.add('hidden');
+            practiceSection.classList.add('hidden');
+
+            if (sectionName === 'main') {
+                mainSection.classList.remove('hidden');
+            } else if (sectionName === 'practice') {
+                practiceSection.classList.remove('hidden');
+            }
+        }
+        
+        // --- Word Processing ---
+        function processWords(text) {
+             return text.trim().split('\n')
+                .map(line => {
+                    const parts = line.split('\t');
+                    if (parts.length === 2 && parts[0].trim() !== '' && parts[1].trim() !== '') {
+                        return { english: parts[0].trim(), chinese: parts[1].trim() };
+                    }
+                    return null;
+                })
+                .filter(word => word !== null);
         }
 
-        function resetFeedback() {
-            const feedbackElement = document.getElementById("feedback");
-            feedbackElement.innerText = "";
-            feedbackElement.className = "feedback";
-            document.getElementById("inputBox").value = "";
-        }
-
-        function shuffleWords() {
-            for (let i = currentWordList.length - 1; i > 0; i--) {
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [currentWordList[i], currentWordList[j]] = [currentWordList[j], currentWordList[i]];
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // --- Practice Logic ---
+        function startPractice(mode) {
+            currentMode = mode;
+            currentWordIndex = 0;
+            const content = wordInput.value || "";
+            words = shuffleArray(processWords(content));
+
+            if (words.length === 0) {
+                alert("沒有有效的單字！請在文字區塊中加入單字。");
+                return;
+            }
+            initAudio();
+            showSection('practice');
+            setupPracticeUI();
+            displayWord();
+        }
+        
+        function setupPracticeUI() {
+            spellingModeDiv.classList.add('hidden');
+            jumbleModeDiv.classList.add('hidden');
+            speechModeDiv.classList.add('hidden');
+            englishWordContainer.classList.add('hidden');
+            checkAnswerBtn.classList.remove('hidden');
+
+            checkAnswerBtn.textContent = (currentMode === 'flashcard') ? '看答案' : '檢查答案';
+
+            if (currentMode === 'spelling') spellingModeDiv.classList.remove('hidden');
+            if (currentMode === 'jumble') jumbleModeDiv.classList.remove('hidden');
+            if (currentMode === 'speech') {
+                speechModeDiv.classList.remove('hidden');
+                checkAnswerBtn.classList.add('hidden');
             }
         }
 
-        function highlightKeys(letters) {
-            const allKeys = document.querySelectorAll(".key");
-            allKeys.forEach(key => key.classList.remove("highlighted"));
-            letters.forEach(letter => {
-                const keyElement = document.getElementById(`key${letter.toUpperCase()}`);
-                if (keyElement) {
-                    keyElement.classList.add("highlighted");
-                }
-            });
-        }
-
-        function getNextWord() {
-            wordIndex = (wordIndex + 1) % currentWordList.length;
-            return currentWordList[wordIndex];
-        }
-
-        function updateWord() {
-            const nextWordObject = getNextWord();
-            currentWord = nextWordObject.word;
-            currentTranslation = nextWordObject.translation;
-            document.getElementById("letterDisplay").innerText = currentWord;
-            document.getElementById("feedback").innerText = `(${currentTranslation})`;
-            highlightKeys(currentWord.split(''));
-        }
-
-        function checkInput() {
-            const input = document.getElementById("inputBox").value.toLowerCase();
-            const normalizedWord = currentWord.toLowerCase(); // 將 currentWord 轉為小寫
-
-            if (!timerStarted && input) {
-                timerStarted = true;
-                startTimer(); // 使用者輸入第一個字母時，開始計時
+        function displayWord() {
+            const currentWord = words[currentWordIndex];
+            progressIndicator.textContent = `單字 ${currentWordIndex + 1} / ${words.length}`;
+            chineseWord.textContent = currentWord.chinese;
+            englishWord.textContent = currentWord.english;
+            feedbackIndicator.textContent = '';
+            englishWordContainer.classList.add('hidden');
+            checkAnswerBtn.disabled = false;
+            
+            if (currentMode === 'spelling') {
+                spellingInputText.innerHTML = '';
+                alphabetKeyboard.classList.remove('opacity-50', 'pointer-events-none');
+            } else if (currentMode === 'jumble') {
+                jumbleAnswer.innerHTML = '';
+                jumblePool.innerHTML = '';
+                const letters = shuffleArray(currentWord.english.split(''));
+                letters.forEach(letter => {
+                    const btn = document.createElement('button');
+                    btn.className = 'letter-btn bg-pink-400 text-white font-black text-2xl py-2 px-4 rounded-lg border-4 border-black pop-shadow-sm btn-press';
+                    btn.textContent = isCaps ? letter.toUpperCase() : letter.toLowerCase();
+                    btn.dataset.char = letter.toLowerCase();
+                    btn.onclick = () => moveLetter(btn, jumblePool, jumbleAnswer);
+                    jumblePool.appendChild(btn);
+                });
+                jumbleCapsBtn.classList.toggle('bg-yellow-400', isCaps);
+            } else if (currentMode === 'speech') {
+                recognizedText.textContent = '';
+                recognitionStatus.textContent = '點擊麥克風開始';
+                recordBtn.disabled = false;
             }
+            prevButton.disabled = currentWordIndex === 0;
+            nextButton.disabled = currentWordIndex === words.length - 1;
+        }
+        
+        function moveLetter(letterBtn, from, to) {
+            letterBtn.onclick = () => moveLetter(letterBtn, to, from);
+            to.appendChild(letterBtn);
+        }
 
-            if (input === normalizedWord) { // 比對時使用小寫的 input 和 normalizedWord
-                score += currentWord.length * 5 + 20;
-                document.getElementById("score").innerText = `分數: ${score}`;
-                resetFeedback();
-                updateWord();
+        function checkAnswer() {
+            if (currentMode === 'flashcard') {
+                 englishWordContainer.classList.remove('hidden');
+                 checkAnswerBtn.disabled = true;
+                 return;
+            }
+            let isCorrect = false;
+            const correctEng = words[currentWordIndex].english.toLowerCase();
+            if (currentMode === 'spelling') {
+                const userAnswer = Array.from(spellingInputText.children).map(node => {
+                    return node.classList.contains('spelling-space') ? ' ' : node.textContent;
+                }).join('');
+                isCorrect = userAnswer.toLowerCase() === correctEng;
+            } else if (currentMode === 'jumble') {
+                const userAnswer = Array.from(jumbleAnswer.children).map(btn => btn.textContent).join('');
+                isCorrect = userAnswer.toLowerCase() === correctEng;
+            }
+            
+            playSound(isCorrect ? 'correct' : 'incorrect');
+            feedbackIndicator.textContent = isCorrect ? '✅' : '❌';
+            feedbackIndicator.style.color = isCorrect ? 'green' : 'red';
+            
+            if (isCorrect) {
+                englishWordContainer.classList.remove('hidden');
+                checkAnswerBtn.disabled = true;
+                if (currentMode === 'spelling') alphabetKeyboard.classList.add('opacity-50', 'pointer-events-none');
+                setTimeout(() => {
+                    if (currentWordIndex < words.length - 1) nextButton.click();
+                }, 1500);
             } else {
-                resetFeedback();
+                if (currentMode === 'spelling') {
+                   spellingAnswer.classList.add('animate-shake');
+                   setTimeout(() => spellingAnswer.classList.remove('animate-shake'), 500);
+                }
             }
         }
+        
+        function speakWord() {
+            if (synth.speaking || words.length === 0) return;
+            const utterThis = new SpeechSynthesisUtterance(words[currentWordIndex].english);
+            utterThis.lang = 'en-US';
+            utterThis.rate = 0.9;
+            synth.speak(utterThis);
+        }
 
-        function detectCapsLock() {
-            document.getElementById("inputBox").addEventListener("keyup", function(event) {
-                if (event.getModifierState("CapsLock")) {
-                    document.getElementById("keyboardStatus").innerText = "目前輸入法：英文大寫";
+        // --- Speech Recognition Logic ---
+        function initSpeechRecognition() {
+            if (!SpeechRecognition) {
+                console.error("此瀏覽器不支援語音辨識功能。");
+                // Disable speech button if not supported
+                const speechButton = document.querySelector('button[data-mode="speech"]');
+                if(speechButton) {
+                    speechButton.disabled = true;
+                    speechButton.textContent = '不支援語音辨識';
+                    speechButton.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                isRecording = true;
+                recordBtn.classList.add('recording');
+                recognitionStatus.textContent = '正在聆聽...';
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                handleRecognitionResult(transcript);
+            };
+
+            recognition.onerror = (event) => {
+                if (event.error === 'no-speech') {
+                    recognitionStatus.textContent = '聽不到聲音，請再試一次';
+                } else if (event.error === 'not-allowed') {
+                    recognitionStatus.textContent = '未授權使用麥克風';
                 } else {
-                    document.getElementById("keyboardStatus").innerText = "目前輸入法：英文小寫";
+                    recognitionStatus.textContent = `發生錯誤: ${event.error}`;
                 }
-                if (event.key === 'Enter') {
-                    checkInput();
+                console.error('Speech recognition error:', event.error);
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                recordBtn.classList.remove('recording');
+                if (recognitionStatus.textContent === '正在聆聽...') {
+                    recognitionStatus.textContent = '點擊麥克風開始';
                 }
-            });
+            };
         }
 
-        function showScoreOverlay() {
-            document.getElementById("finalScore").innerText = `分數: ${score}`;
-            document.getElementById("practiceTimeText").innerText = `此次練習時間: ${practiceTime} 分鐘`;
-            document.getElementById("scoreOverlay").style.display = "flex";
-        }
+        function handleRecognitionResult(transcript) {
+            recognizedText.textContent = `「${transcript}」`;
+            const correctEng = words[currentWordIndex].english.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+            const userEng = transcript.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
 
-        function restartPractice() {
-            document.getElementById("scoreOverlay").style.display = "none";
-            document.getElementById("practiceArea").classList.remove("active");
-            document.getElementById("setupArea").style.display = "block"; // 顯示 .setup-area 區域
-            window.onload(); // 重新載入初始畫面內容
-        }
+            const isCorrect = userEng === correctEng;
 
-        // 切換到自訂單字練習畫面
-        function switchToCustomWordArea() {
-            document.getElementById("setupArea").style.display = "none";
-            document.getElementById("practiceArea").style.display = "none";
-            document.getElementById("customWordArea").style.display = "block";
-        }
+            playSound(isCorrect ? 'correct' : 'incorrect');
+            feedbackIndicator.textContent = isCorrect ? '✅' : '❌';
+            feedbackIndicator.style.color = isCorrect ? 'green' : 'red';
 
-        // 送出自訂單字並生成題目按鈕
-        function submitCustomWord() {
-            processCustomWord(document.getElementById("customWordInput").value);
-
-            // 返回 "開始練習" 畫面
-            document.getElementById("customWordArea").style.display = "none";
-            document.getElementById("setupArea").style.display = "block";
-        }
-
-        // 處理自訂單字輸入
-        function processCustomWord(customWordInput) {
-            const lines = customWordInput.split('\n');
-            const title = lines[0]; // 取得標題
-            const dataLines = lines.slice(1); // 剩下的是資料行
-            const table = document.getElementById("customWordTable");
-            const questionButtons = document.getElementById("questionButtons");
-
-            // 更新網頁標題
-            document.title = `${title} 單字打字練習`;
-
-            // 顯示表格標題
-            document.getElementById("customWordTitle").textContent = title;
-
-            table.innerHTML = ''; // 清空表格
-            questionButtons.innerHTML = ''; // 清空按鈕
-
-            currentWordList = []; // 重置單字列表
-
-            dataLines.forEach(line => {
-                const [english, chinese] = line.split(/[\t,]/);
-                if (english && chinese) {
-                    const row = table.insertRow();
-                    const cell1 = row.insertCell(0);
-                    const cell2 = row.insertCell(1);
-                    cell1.textContent = english.trim();
-                    cell2.textContent = chinese.trim();
-
-                    // 將每行添加到題目列表中
-                    currentWordList.push({ word: english.trim(), translation: chinese.trim() });
-
-                    // 動態生成按鈕
-                    const button = document.createElement("button");
-                    button.textContent = english.trim();
-                    button.className = "control-buttons";
-                    button.onclick = () => selectWord(english.trim());
-                    questionButtons.appendChild(button);
-                }
-            });
-
-            // 隨機選擇一個按鈕並預選
-            const buttons = questionButtons.getElementsByTagName("button");
-            if (buttons.length > 0) {
-                const randomIndex = Math.floor(Math.random() * buttons.length);
-                buttons[randomIndex].click();
-            }
-        }
-
-        function selectWord(word) {
-            currentWord = word;
-            updateWord();
-        }
-
-        // 獲取網址參數中的單字資料
-        function getURLData() {
-            let data = '';
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('data')) {
-                data = decodeURIComponent(urlParams.get('data'));
-            }
-            return data;
-        }
-
-        // 處理網址參數中的單字資料
-        function processURLData(urlData) {
-            const dataEntries = urlData.split(';'); // 使用分號分隔
-            const table = document.getElementById("customWordTable");
-            const questionButtons = document.getElementById("questionButtons");
-
-            table.innerHTML = ''; // 清空表格
-            questionButtons.innerHTML = ''; // 清空按鈕
-            currentWordList = []; // 重置單字列表
-
-            dataEntries.forEach(entry => {
-                const [english, chinese] = entry.split(',');
-                if (english && chinese) {
-                    const row = table.insertRow();
-                    const cell1 = row.insertCell(0);
-                    const cell2 = row.insertCell(1);
-                    cell1.textContent = english.trim();
-                    cell2.textContent = chinese.trim();
-
-                    // 將每行添加到題目列表中
-                    currentWordList.push({ word: english.trim(), translation: chinese.trim() });
-
-                    // 動態生成按鈕
-                    const button = document.createElement("button");
-                    button.textContent = english.trim();
-                    button.className = "control-buttons";
-                    button.onclick = () => selectWord(english.trim());
-                    questionButtons.appendChild(button);
-                }
-            });
-
-            // 隨機選擇一個按鈕並預選
-            const buttons = questionButtons.getElementsByTagName("button");
-            if (buttons.length > 0) {
-                const randomIndex = Math.floor(Math.random() * buttons.length);
-                buttons[randomIndex].click();
-            }
-        }
-
-        // 預填內容後自動送出
-        window.onload = function() {
-            const urlData = getURLData();
-            if (urlData) {
-                processURLData(urlData);
+            if (isCorrect) {
+                recordBtn.disabled = true;
+                englishWordContainer.classList.remove('hidden');
+                setTimeout(() => {
+                    if (currentWordIndex < words.length - 1) {
+                        nextButton.click();
+                    }
+                }, 1500);
             } else {
-                // 只有當網址沒有參數時才去讀取 csv
-                fetch('engtype.csv')
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('No engtype.csv file found');
-                        }
-                        return response.text();
-                    })
-                    .then(data => {
-                        document.getElementById('customWordInput').value = data; // 取代 <textarea> 內的內容
-                        submitCustomWord(); // 自動提交資料並更新頁面
-                    })
-                    .catch(error => {
-                        console.log('Could not load engtype.csv:', error);
-                        // 如果沒有網址參數，且無法讀取 CSV，預先提交 textarea 內的內容
-                        submitCustomWord();
-                    });
+                recognitionStatus.textContent = '答錯了，再試一次！';
             }
-        };
+        }
+        
+        // --- Event Listeners ---
+        jumbleCapsBtn.addEventListener('click', () => {
+            isCaps = !isCaps;
+            jumbleCapsBtn.classList.toggle('bg-yellow-400', isCaps);
+            
+            const allJumbleButtons = document.querySelectorAll('#jumble-pool .letter-btn, #jumble-answer .letter-btn');
+            
+            allJumbleButtons.forEach(btn => {
+                const baseChar = btn.dataset.char;
+                if (baseChar) { 
+                   btn.textContent = isCaps ? baseChar.toUpperCase() : baseChar.toLowerCase();
+                }
+            });
+        });
+        
+        modeButtons.forEach(btn => {
+            btn.addEventListener('click', () => startPractice(btn.dataset.mode));
+        });
+
+        checkAnswerBtn.addEventListener('click', checkAnswer);
+        speakEmojiBtn.addEventListener('click', speakWord);
+        backToMainBtn.addEventListener('click', () => showSection('main'));
+
+        recordBtn.addEventListener('click', () => {
+            if (!isRecording && recognition) {
+                recognition.start();
+            }
+        });
+        
+        nextButton.addEventListener('click', () => {
+            if (currentWordIndex < words.length - 1) {
+                currentWordIndex++;
+                displayWord();
+            }
+        });
+        prevButton.addEventListener('click', () => {
+            if (currentWordIndex > 0) {
+                currentWordIndex--;
+                displayWord();
+            }
+        });
+        
+        // --- Initial Load ---
+        window.addEventListener('load', () => {
+            showSection('main');
+            createAlphabetKeyboard();
+            initSpeechRecognition();
+        });
+
     </script>
+
 
 
 </body></html>
