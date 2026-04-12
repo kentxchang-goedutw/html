@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>部件學習單產生器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="control-panel print-hidden">
+      <header class="panel-header">
+        <p class="eyebrow">Worksheet Builder</p>
+        <h1>部件學習單產生器</h1>
+        <p class="panel-copy">點選格子後會開啟筆畫編輯，直接點選筆畫來隱藏缺少的部件。</p>
+      </header>
+
+      <section class="panel-section">
+        <h2>版面設定</h2>
+        <label>
+          標題
+          <input id="titleInput" type="text" value="寫出完整生字">
+        </label>
+        <label>
+          副標
+          <input id="subtitleInput" type="text" value="請觀察後補上缺少的部件">
+        </label>
+        <label>
+          說明文字
+          <textarea id="instructionInput" rows="3">親愛的小朋友，我們不小心把老師的作業單上一些字給擦掉了，可以幫我們補上去嗎？謝謝你喔！</textarea>
+        </label>
+        <div class="two-col">
+          <label>
+            每列字數
+            <input id="columnsInput" type="number" min="4" max="16" value="12">
+          </label>
+          <label>
+            練習空白列
+            <input id="practiceRowsInput" type="number" min="0" max="4" value="1">
+          </label>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <h2>生字內容</h2>
+        <label>
+          生字
+          <textarea id="charactersInput" rows="5">博士女防木米告口穴止禾日</textarea>
+        </label>
+        <label>
+          註記（選填）
+          <div class="inline-actions">
+            <button id="generateZhuyinButton" type="button" class="secondary small-button">注音</button>
+          </div>
+          <textarea id="annotationsInput" rows="5" placeholder="可輸入和字數相同的提示，例如注音、部件名稱或空白。
+每個字對應一個欄位，可用空白、逗號或換行分隔。">ㄅㄛˊ ㄕˋ ㄋㄩˇ ㄈㄤˊ ㄇㄨˋ ㄇㄧˇ ㄍㄠˋ ㄎㄡˇ ㄒㄩㄝˋ ㄓˇ ㄏㄜˊ ㄖˋ</textarea>
+        </label>
+      </section>
+
+      <section class="panel-section">
+        <h2>檔案</h2>
+        <div class="tool-row">
+          <button id="saveJsonButton" type="button" class="secondary">匯出設定</button>
+          <label for="loadJsonInput" class="button-like secondary">載入設定</label>
+          <input id="loadJsonInput" type="file" accept="application/json" hidden>
+        </div>
+        <div class="tool-row">
+          <button id="printButton" type="button">下載 PDF</button>
+          <button id="resetButton" type="button" class="danger">重設目前內容</button>
+        </div>
+      </section>
+    </aside>
+
+    <main class="preview-area">
+      <div class="page-frame">
+        <article id="worksheetPage" class="worksheet-page"></article>
+      </div>
+    </main>
+  </div>
+
+  <footer class="app-footer print-hidden" aria-label="Credits and license">
+    <div class="app-footer-stack">
+      <div class="app-footer-row">
+        <span>Made by</span>
+        <a href="https://kentxchang.blogspot.tw" target="_blank" rel="noreferrer noopener">阿剛老師</a>
+      </div>
+      <span class="app-footer-license">CC BY-NC-SA（姓名標示-非商業-相同方式分享）</span>
+    </div>
+  </footer>
+
+  <div id="strokeEditorModal" class="stroke-editor-modal" hidden>
+    <div class="stroke-editor-backdrop"></div>
+    <section class="stroke-editor-panel" role="dialog" aria-modal="true" aria-labelledby="strokeEditorTitle">
+      <header class="stroke-editor-header">
+        <div>
+          <p class="eyebrow">Stroke Editor</p>
+          <h2 id="strokeEditorTitle">筆畫編輯</h2>
+          <p id="strokeEditorMeta" class="hint">點選筆畫即可切換隱藏或顯示。</p>
+        </div>
+        <button id="closeEditorButton" type="button" class="secondary">關閉</button>
+      </header>
+      <div class="stroke-editor-body">
+        <div id="strokeEditorCanvas" class="stroke-editor-canvas"></div>
+        <aside class="stroke-editor-sidebar">
+          <p id="strokeEditorStatus" class="selected-cell-label">尚未載入筆畫資料</p>
+          <div class="tool-row">
+            <button id="clearStrokeSelectionButton" type="button" class="secondary">顯示全部筆畫</button>
+            <button id="invertStrokeSelectionButton" type="button" class="secondary">反轉隱藏</button>
+          </div>
+          <ul id="strokeList" class="mask-list"></ul>
+        </aside>
+      </div>
+    </section>
+  </div>
+
+  <template id="maskItemTemplate">
+    <li class="mask-item">
+      <span class="mask-item-label"></span>
+      <button type="button" class="mask-delete secondary">刪除</button>
+    </li>
+  </template>
+
+  <script src="./app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.28.1/dist/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+</body>
+</html>
